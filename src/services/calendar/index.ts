@@ -1,4 +1,4 @@
-import { N8N_ADD_TO_CALENDAR, N8N_GET_FROM_CALENDAR } from 'src/config'
+import { N8N_ADD_TO_CALENDAR, N8N_GET_FROM_CALENDAR } from 'src/config';
 
 /**
  * get calendar
@@ -19,7 +19,7 @@ const getCurrentCalendar = async (): Promise<{ start: string, end: string }[]> =
  * @param body 
  * @returns 
  */
-const appToCalendar = async (payload: { name: string, email: string, startDate: Date, endData: Date, phone: string }) => {
+const appToCalendar = async (payload: { name: string, email: string, startDate: Date, endData: Date, phone: string, description: string}) => {
     try {
         const dataApi = await fetch(N8N_ADD_TO_CALENDAR, {
             method: 'POST',

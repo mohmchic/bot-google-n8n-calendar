@@ -13,16 +13,20 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@bot-whatsapp/bot": "^0.1.38",
+    "@bot-whatsapp/provider-baileys": "^0.1.0-alpha.18",
     "@builderbot-plugins/wali": "^1.0.2",
-    "@builderbot/bot": "1.1.5",
-    "@builderbot/provider-baileys": "^1.1.5",
+    "@builderbot/bot": "1.2.2",
+    "@builderbot/provider-baileys": "^1.2.2",
+    "@builderbot/provider-meta": "^1.2.1",
     "@ffmpeg-installer/ffmpeg": "^1.1.0",
     "date-fns": "^3.3.1",
     "date-fns-tz": "3.0.0-beta.2",
     "dotenv": "^16.4.2",
     "fluent-ffmpeg": "^2.1.2",
     "multer": "1.4.5-lts.1",
-    "openai": "^4.27.0"
+    "openai": "^4.62.1",
+    "sharp": "^0.33.5"
   },
   "devDependencies": {
     "@rollup/plugin-terser": "^0.4.4",

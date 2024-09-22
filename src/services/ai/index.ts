@@ -2,18 +2,31 @@ import OpenAI from "openai";
 import fs from "fs";
 import { ChatCompletionMessageParam } from "openai/resources/chat";
 
+const TEMPLATE = `
+CONTEXTO={%chat_history%}
+
+%message%
+`;
 
 class AIClass {
     private openai: OpenAI;
     private model: string
 
     constructor(apiKey: string, _model: string) {
-        this.openai = new OpenAI({ apiKey, timeout: 15 * 1000 });
+        this.openai = new OpenAI({
+            apiKey, 
+            timeout: 15 * 1000 });
         if (!apiKey || apiKey.length === 0) {
             throw new Error("OPENAI_KEY is missing");
         }
-
         this.model = _model
+    }
+
+    private getPrompt(template: string, templateValues: any) {
+        for (let key in templateValues) {
+            template = template.replace(`%${key}%`, templateValues[key]);
+        }
+        return template;
     }
 
     /**
@@ -83,6 +96,19 @@ class AIClass {
         temperature = 0
     ): Promise<{ prediction: string }> => {
         try {
+            console.log("Mensajes: ", messages)
+            // const completion = await this.openai.chat.completions.create({
+            //     model: model ?? this.model,
+            //     temperature: temperature,
+            //     messages: [
+            //         {
+            //             role: "system",
+            //             content: 'Eres un asistente que ayuda a predecir la intención del usuario en una conversación. Debes devolver solo una de las siguientes intenciones: "PROGRAMAR" o "HABLAR".  Proporciona respuestas claras y concisas, asegurándote de identificar correctamente la intención del usuario.'
+            //         },
+            //         ...messages
+            //     ]
+            // });
+
             const completion = await this.openai.chat.completions.create({
                 model: model ?? this.model,
                 temperature: temperature,
@@ -115,6 +141,7 @@ class AIClass {
                     name: "fn_get_prediction_intent",
                 }
             });
+            console.log("Completion: ", completion)
             const response = JSON.parse(completion.choices[0].message.function_call.arguments);
             return response;
         } catch (err) {
@@ -288,6 +315,70 @@ class AIClass {
         }
     };
 
+    /**
+     * Método para interactuar con un asistente de OpenAI
+     * @param content Valores para el template del prompt
+     * @returns Respuesta del asistente o null en caso de error
+     */
+    assistant = async (content: string | null, existingThreadId: string | null = null): Promise<string | null> => {
+        try {
+            const openai = new OpenAI({ 
+                apiKey: process.env.OPENAI_API_KEY, 
+                timeout: 15 * 1000,
+                defaultHeaders: {"OpenAI-Beta": "assistants=v2"}
+            });
+            // Crear o reutilizar un hilo existente
+            const thread = existingThreadId
+                ? { id: existingThreadId }
+                : await openai.beta.threads.create(
+                    // assistant_id: process.env.OPENAI_ASSISTANT_ID
+                );
+            console.log("Thread creado: ", thread.id)
+            // Crear un mensaje en el hilo con contenido como string
+            const message = await openai.beta.threads.messages.create(thread.id, {
+                role: "user",
+                content: content // Enviar el contenido como string
+            });
+
+            const run = await openai.beta.threads.runs.createAndPoll(thread.id, {
+                assistant_id: process.env.OPENAI_ASSISTANT_ID,
+            });
+
+            console.log("Run: ",run)
+            // Verificar si la ejecución fue completada
+            // if (run.status !== 'completed') {
+            //     console.log(`Run status: ${run.status}`);
+            //     return null;
+            // }
+
+            // Obtener y procesar los mensajes
+            const messages = await openai.beta.threads.messages.list(
+                run.thread_id
+              );
+            if (messages.data.length === 0 || messages.data[0].content.length === 0) {
+                console.log('No se encontraron mensajes o el contenido está vacío');
+                return null;
+            }
+
+            const contentBlock = messages.data[0].content[0];
+            console.log(contentBlock)
+            // Verifica si el `contentBlock` es de tipo `MessageContentText`
+            if (contentBlock && 'text' in contentBlock) {
+                const textContent = contentBlock.text.value as unknown as string;
+
+                return textContent
+                    .replace(/\【.*?\】/g, '')
+                    .replace(/\[.*?\]/g, '');
+            } else {
+                console.log('El contenido no es de tipo texto.');
+                return null;
+            }
+
+        } catch (error) {
+            console.error("Error in assistant:", error);
+            return null;
+        }
+    };
 }
 
 export default AIClass;
